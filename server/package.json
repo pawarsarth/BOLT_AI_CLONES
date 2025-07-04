@@ -1,0 +1,14 @@
+{
+  "name": "bolt-ai-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "body-parser": "^2.2.0",
+    "@google/genai": "^1.7.0"
+  }
+}
