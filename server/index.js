@@ -8,37 +8,42 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-
 const app = express();
 const port = process.env.PORT || 3001;
-
 
 app.use(cors());
 app.use(bodyParser.json());
 
-const platform = os.platform();
 const asyncExecute = promisify(exec);
 const History = [];
 
 const ai = new GoogleGenAI({
-  apiKey: 'AIzaSyBdfYO1wPBTPCwVs_E_UzMqVldvg2E3yNU', // 🔐 Replace in production
+  apiKey: process.env.GEMINI_API_KEY || 'YOUR_API_KEY_HERE', // 💡 Use env var in prod
 });
 
-// 📁 File writer (touch, mkdir, echo)
+// 📁 File writer
 async function executeCommand({ command }) {
   try {
     const writeRegex = /^echo\s+"([\s\S]*)"\s*>\s*(.+)$/;
     const match = command.match(writeRegex);
 
     if (match) {
-      let content = match[1];
-      content = content.replace(/\\"/g, '"').replace(/\\n/g, '\n');
+      let content = match[1]
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\\\/g, '\\');
 
-      const filePath = path.resolve('server', match[2]); // ✅ only prefix with 'server' once
+      let rawPath = match[2].replace(/^server[\\/]/, '');
+      const filePath = path.resolve('server', rawPath);
       const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
+      console.log("📝 Writing to:", filePath);
+      console.log("📄 Content:\n", content.slice(0, 300)); // Limit output
+
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(filePath, content, 'utf8');
+
       return `✅ File written successfully: ${filePath}`;
     }
 
@@ -60,6 +65,7 @@ async function executeCommand({ command }) {
     return `✅ Success:\n${stdout}\n✔ Task executed completely`;
 
   } catch (error) {
+    console.error("❌ Command Error:", error.message);
     return `❌ Execution Failed:\n${error.message}`;
   }
 }
@@ -67,7 +73,6 @@ async function executeCommand({ command }) {
 // 🔄 Vercel deployer
 async function deployToVercel(sitePath) {
   try {
-    // 🛠 Install CLI dynamically
     await asyncExecute('npm install -g vercel');
 
     const { stdout, stderr } = await asyncExecute(
@@ -105,7 +110,6 @@ const availableTools = { executeCommand };
 
 async function runAgent(userPrompt) {
   History.push({ role: 'user', parts: [{ text: userPrompt }] });
-
   const allOutputs = [];
 
   while (true) {
@@ -116,30 +120,16 @@ async function runAgent(userPrompt) {
         systemInstruction: `
 You are an expert assistant for generating static websites using terminal commands.
 
-✅ IMPORTANT:
-- DO NOT add any prefix like "server/"
-- ONLY use folder names like "portfolio", "keyboard_store", etc.
-- Create files using:
-  mkdir keyboard_store
-  touch keyboard_store/index.html
-  echo "<html>...</html>" > keyboard_store/index.html
-
-✅ FILE STRUCTURE:
-- All files (index.html, style.css, script.js) should be created inside the folder only
-- Do NOT nest folders unless asked
-
-✅ HTML LINKING RULES:
-- Always use relative paths inside index.html
-  ✅ <link rel="stylesheet" href="style.css">
-  ✅ <script src="script.js"></script>
-- ❌ NEVER use absolute paths like /style.css or /script.js — these break on Vercel
-
-✅ EXAMPLE STRUCTURE:
-keyboard_store/
-  index.html
-  style.css
-  script.js
-`,
+✅ ONLY use folders like "clock_store", "car_store", etc.
+✅ Create files with:
+  mkdir fan_site
+  touch fan_site/index.html
+  echo "<html>...</html>" > fan_site/index.html
+✅ Never prefix with "server/"
+✅ Always link CSS/JS using relative paths:
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+        `,
         tools: [{ functionDeclarations: [executeCommandDeclaration] }],
       },
     });
@@ -161,7 +151,7 @@ keyboard_store/
   return allOutputs;
 }
 
-// 🚀 Endpoint: Generate site from prompt
+// 🚀 /api/generate (only generates files)
 app.post('/api/generate', async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
@@ -169,20 +159,10 @@ app.post('/api/generate', async (req, res) => {
   History.length = 0;
   const result = await runAgent(prompt);
 
-  const mkdirCommand = result.find(r => r.command?.startsWith("mkdir"));
-  const folderName = mkdirCommand?.command?.split(" ")[1]?.replace(/"/g, '');
-  const folderPath = path.resolve('server', folderName || "");
-
-  let deployedUrl = null;
-  if (fs.existsSync(folderPath)) {
-    const url = await deployToVercel(folderPath);
-    if (url) deployedUrl = url;
-  }
-
-  res.json({ success: true, data: result, deployedUrl });
+  res.json({ success: true, data: result });
 });
 
-// 🌐 Endpoint: Deploy existing folder
+// 🚀 /api/publish (deploy manually when user clicks "Publish")
 app.post('/api/publish', async (req, res) => {
   const { folderName } = req.body;
   const folderPath = path.resolve('server', folderName || "");
@@ -199,8 +179,12 @@ app.post('/api/publish', async (req, res) => {
   }
 });
 
+// 🌐 Root status check
+app.get('/', (req, res) => {
+  res.send("✅ Bolt AI backend is running.");
+});
+
 // 🔥 Start server
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
-
