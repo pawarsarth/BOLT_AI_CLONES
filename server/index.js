@@ -18,13 +18,14 @@ const asyncExecute = promisify(exec);
 const History = [];
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyAr7DTdzGkyWJFFzkkSq3mO21xOuw1Cin4', // 💡 Use env var in prod
+  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyAsZyhKRwu3s-XDwuE4IdMQhFWDiSHDi1g', // 🔐 Use env var in prod
 });
 
 // 📁 File writer
 async function executeCommand({ command }) {
   try {
-    const writeRegex = /^echo\s+"([\s\S]*)"\s*>\s*(.+)$/;
+    // Match both echo "..." > file and echo '...' > file
+    const writeRegex = /^echo\s+["']([\s\S]*)["']\s*>\s*(.+)$/;
     const match = command.match(writeRegex);
 
     if (match) {
@@ -39,7 +40,7 @@ async function executeCommand({ command }) {
       const dir = path.dirname(filePath);
 
       console.log("📝 Writing to:", filePath);
-      console.log("📄 Content:\n", content.slice(0, 300)); // Limit output
+      console.log("📄 Content Preview:\n", content.slice(0, 200));
 
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(filePath, content, 'utf8');
@@ -60,10 +61,7 @@ async function executeCommand({ command }) {
       return `✅ Folder created: ${resolvedPath}`;
     }
 
-    const { stdout, stderr } = await asyncExecute(command);
-    if (stderr?.trim()) return `❌ Error: ${stderr}`;
-    return `✅ Success:\n${stdout}\n✔ Task executed completely`;
-
+    return `⚠️ Unsupported or unsafe command: ${command}`;
   } catch (error) {
     console.error("❌ Command Error:", error.message);
     return `❌ Execution Failed:\n${error.message}`;
@@ -73,7 +71,9 @@ async function executeCommand({ command }) {
 // 🔄 Vercel deployer
 async function deployToVercel(sitePath) {
   try {
-    await asyncExecute('npm install -g vercel');
+    console.log("🚀 Deploying folder:", sitePath);
+
+    await asyncExecute('npm install -g vercel'); // Required in Render for fresh env
 
     const { stdout, stderr } = await asyncExecute(
       `vercel deploy --cwd=${sitePath} --prod --yes --token=${process.env.VERCEL_TOKEN}`
@@ -151,7 +151,7 @@ You are an expert assistant for generating static websites using terminal comman
   return allOutputs;
 }
 
-// 🚀 /api/generate (only generates files)
+// 🚀 /api/generate — only generate files
 app.post('/api/generate', async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
@@ -162,7 +162,7 @@ app.post('/api/generate', async (req, res) => {
   res.json({ success: true, data: result });
 });
 
-// 🚀 /api/publish (deploy manually when user clicks "Publish")
+// 🚀 /api/publish — deploy only when user clicks "Publish"
 app.post('/api/publish', async (req, res) => {
   const { folderName } = req.body;
   const folderPath = path.resolve('server', folderName || "");
@@ -179,7 +179,7 @@ app.post('/api/publish', async (req, res) => {
   }
 });
 
-// 🌐 Root status check
+// 🔍 Status check
 app.get('/', (req, res) => {
   res.send("✅ Bolt AI backend is running.");
 });
