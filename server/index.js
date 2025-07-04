@@ -18,7 +18,7 @@ const asyncExecute = promisify(exec);
 const History = [];
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || 'YOUR_API_KEY_HERE', // 💡 Use env var in prod
+  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyBdfYO1wPBTPCwVs_E_UzMqVldvg2E3yNU', // 💡 Use env var in prod
 });
 
 // 📁 File writer
