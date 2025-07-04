@@ -179,6 +179,40 @@ app.post('/api/publish', async (req, res) => {
   }
 });
 
+// ✅ Serve all files from /server to frontend
+app.get('/api/files', (req, res) => {
+  const basePath = path.resolve('server');
+
+  function traverse(dirPath) {
+    const result = [];
+
+    const files = fs.readdirSync(dirPath);
+    for (const file of files) {
+      const fullPath = path.join(dirPath, file);
+      const stat = fs.statSync(fullPath);
+      const relativePath = path.relative(basePath, fullPath).replace(/\\/g, '/');
+
+      if (stat.isDirectory()) {
+        result.push(...traverse(fullPath));
+      } else {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        result.push({ path: `server/${relativePath}`, content });
+      }
+    }
+
+    return result;
+  }
+
+  try {
+    const allFiles = traverse(basePath);
+    res.json({ success: true, files: allFiles });
+  } catch (err) {
+    console.error('❌ Failed to read files:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to load files' });
+  }
+});
+
+
 // 🔍 Status check
 app.get('/', (req, res) => {
   res.send("✅ Bolt AI backend is running.");
@@ -188,3 +222,4 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
+
