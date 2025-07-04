@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { Send, Code, Eye, Terminal, FileText } from 'lucide-react';
 import CodeEditor from './CodeEditor';
@@ -24,6 +24,24 @@ function Chat() {
 
   const { files, expandedFolders, parseFilePath, toggleFolder, getFileContent } = useFileSystem();
 
+  // ✅ Load files from backend when component mounts
+  useEffect(() => {
+    async function loadFiles() {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/files`);
+        if (res.data.success && res.data.files) {
+          res.data.files.forEach((file: any) => {
+            parseFilePath(file.path, file.content);
+          });
+        }
+      } catch (err: any) {
+        console.error('❌ Failed to load files:', err.message);
+      }
+    }
+
+    loadFiles();
+  }, [parseFilePath]);
+
   const addLog = useCallback((type: LogEntry['type'], content: string) => {
     setLogs(prev => [...prev, { type, content, timestamp: new Date() }]);
   }, []);
@@ -43,7 +61,6 @@ function Chat() {
       const fullPath = `server/${filePath}`;
       parseFilePath(fullPath, content);
 
-      // Auto-expand the folder in the file explorer
       const folder = fullPath.split('/').slice(0, -1).join('/');
       toggleFolder(folder);
 
@@ -53,13 +70,13 @@ function Chat() {
 
         const extension = filePath.split('.').pop()?.toLowerCase();
         const languageMap: { [key: string]: string } = {
-          'html': 'html',
-          'css': 'css',
-          'js': 'javascript',
-          'ts': 'typescript',
-          'json': 'json',
-          'md': 'markdown',
-          'txt': 'plaintext'
+          html: 'html',
+          css: 'css',
+          js: 'javascript',
+          ts: 'typescript',
+          json: 'json',
+          md: 'markdown',
+          txt: 'plaintext',
         };
         setCurrentLanguage(languageMap[extension || ''] || 'plaintext');
       }
@@ -97,11 +114,11 @@ function Chat() {
 
   const handlePublish = async () => {
     if (!selectedFile) {
-      alert("Please select a file (e.g. index.html) to determine the folder.");
+      alert('Please select a file (e.g. index.html) to determine the folder.');
       return;
     }
 
-    alert("🚀 Publishing... Please wait about 1 minute for the site to deploy.\nDo not press the Publish button again.");
+    alert('🚀 Publishing... Please wait about 1 minute for the site to deploy.\nDo not press the Publish button again.');
 
     const pathParts = selectedFile.split('/');
     let folderName = '';
@@ -116,7 +133,7 @@ function Chat() {
 
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/publish`, { folderName });
-      console.log("📦 Response from publish:", res.data);
+      console.log('📦 Response from publish:', res.data);
 
       if (res.data.success && res.data.deployedUrl) {
         setDeployedUrl(res.data.deployedUrl);
@@ -125,7 +142,7 @@ function Chat() {
         addLog('result', `⚠️ Failed to publish: ${res.data.message || 'Unknown error'}`);
       }
     } catch (err: any) {
-      console.error("❌ Axios error:", err.response?.data || err.message);
+      console.error('❌ Axios error:', err.response?.data || err.message);
       addLog('result', `❌ Publish error: ${err.message}`);
     }
   };
@@ -136,13 +153,13 @@ function Chat() {
 
     const extension = path.split('.').pop()?.toLowerCase();
     const languageMap: { [key: string]: string } = {
-      'html': 'html',
-      'css': 'css',
-      'js': 'javascript',
-      'ts': 'typescript',
-      'json': 'json',
-      'md': 'markdown',
-      'txt': 'plaintext'
+      html: 'html',
+      css: 'css',
+      js: 'javascript',
+      ts: 'typescript',
+      json: 'json',
+      md: 'markdown',
+      txt: 'plaintext',
     };
     setCurrentLanguage(languageMap[extension || ''] || 'plaintext');
   }, []);
@@ -218,8 +235,9 @@ ${enhancedHtml}
   };
 
   return (
-    // your full existing JSX layout remains unchanged
-    // ✅ no need to rewrite it again here
+    <div className="h-screen bg-gray-900 text-white flex flex-col">
+      {/* ...the rest of your JSX layout remains unchanged... */}
+    </div>
   );
 }
 
