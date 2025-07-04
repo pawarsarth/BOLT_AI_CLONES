@@ -236,7 +236,161 @@ ${enhancedHtml}
 
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col">
-      {/* ...the rest of your JSX layout remains unchanged... */}
+      <div className="bg-gray-800 border-b border-gray-700 p-4">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Code className="text-blue-400" />
+          Bolt AI - Website Builder
+        </h1>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* File Explorer */}
+        <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+            <FileExplorer
+              files={files}
+              selectedFile={selectedFile}
+              onFileSelect={handleFileSelect}
+              expandedFolders={expandedFolders}
+              onToggleFolder={toggleFolder}
+            />
+          </div>
+        </div>
+
+        {/* Main Panel */}
+        <div className="flex-1 flex flex-col">
+          <div className="bg-gray-800 border-b border-gray-700 p-4">
+            <div className="flex gap-2">
+              <input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Describe the website you want to build..."
+                className="flex-1 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                disabled={loading}
+              />
+              <button
+                onClick={handleSend}
+                disabled={loading || !prompt.trim()}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Send size={16} />
+                {loading ? "Working..." : "Send"}
+              </button>
+              <button
+                onClick={handlePublish}
+                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                🚀 Publish
+              </button>
+              {deployedUrl && (
+                <button
+                  onClick={() => window.open(deployedUrl, '_blank')}
+                  className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  🌐 Open Site
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Press Ctrl+Enter (Cmd+Enter on Mac) to send</p>
+          </div>
+
+          {/* Editor/Preview + Logs */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Editor/Preview Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="bg-gray-800 border-b border-gray-700 flex">
+                <button
+                  onClick={() => setActiveTab('editor')}
+                  className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'editor' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                >
+                  <FileText size={16} />
+                  Code Editor
+                </button>
+                <button
+                  onClick={() => setActiveTab('preview')}
+                  className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'preview' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                >
+                  <Eye size={16} />
+                  Preview
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                {activeTab === 'editor' ? (
+                  selectedFile && currentCode ? (
+                    <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 p-4">
+                      <CodeEditor
+                        code={currentCode}
+                        language={currentLanguage}
+                        onChange={(value) => {
+                          if (!value) return;
+                          setCurrentCode(value);
+                          parseFilePath(selectedFile!, value); // update file system content
+                        }}
+                        readOnly={false}
+                      />
+
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-gray-500">
+                      <p>No file selected</p>
+                    </div>
+                  )
+                ) : (
+                  <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 p-4">
+                    <Preview
+                      htmlContent={getCompletePreviewContent()}
+                      onRefresh={() => {
+                        if (selectedFile) {
+                          const content = getFileContent(selectedFile);
+                          setCurrentCode(content);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Activity Log */}
+            <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col overflow-hidden">
+              <div className="p-3 bg-gray-700 border-b border-gray-600 flex items-center gap-2">
+                <Terminal size={16} />
+                <h3 className="font-medium">Activity Log</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 p-3 space-y-2">
+                {logs.map((log, i) => (
+                  <div
+                    key={i}
+                    className={`p-2 rounded text-sm ${log.type === 'user'
+                      ? 'bg-blue-900/30 border-l-2 border-blue-500'
+                      : log.type === 'ai'
+                        ? 'bg-green-900/30 border-l-2 border-green-500'
+                        : log.type === 'command'
+                          ? 'bg-yellow-900/30 border-l-2 border-yellow-500'
+                          : 'bg-gray-700/50'
+                      }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-xs font-medium">{log.type.toUpperCase()}</span>
+                      <span className="text-xs text-gray-500">{log.timestamp.toLocaleTimeString()}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap break-words overflow-x-auto">{log.content}</div>
+                  </div>
+                ))}
+
+                {loading && (
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="animate-spin w-4 h-4 border-2 border-gray-600 border-t-blue-500 rounded-full"></div>
+                    <span>AI is working...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
