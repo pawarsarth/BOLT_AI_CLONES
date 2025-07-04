@@ -1,12 +1,13 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import { GoogleGenAI } from '@google/genai';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import os from 'os';
-import fs from 'fs';
-import path from 'path';
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const { GoogleGenAI } = require('@google/genai');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
 
 const app = express();
 const port = process.env.PORT || 3001;
