@@ -67,7 +67,13 @@ async function executeCommand({ command }) {
 // 🔄 Vercel deployer
 async function deployToVercel(sitePath) {
   try {
-    const { stdout, stderr } = await asyncExecute(`vercel deploy --cwd=${sitePath} --prod --yes`);
+    // 🛠 Install CLI dynamically
+    await asyncExecute('npm install -g vercel');
+
+    const { stdout, stderr } = await asyncExecute(
+      `vercel deploy --cwd=${sitePath} --prod --yes --token=${process.env.VERCEL_TOKEN}`
+    );
+
     console.log("📤 Vercel Output:\n", stdout);
     if (stderr?.trim()) console.error("❌ Deployment stderr:", stderr);
 
