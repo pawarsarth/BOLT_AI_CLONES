@@ -69,7 +69,8 @@ function Chat() {
     addLog('user', prompt);
 
     try {
-      const res = await axios.post('http://localhost:3001/api/generate', { prompt });
+     const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/generate`, { prompt });
+
       if (res.data.success && res.data.data) {
         res.data.data.forEach((item: any) => {
           if (item.command) {
@@ -115,7 +116,8 @@ function Chat() {
   if (!folderName) return;
 
   try {
-    const res = await axios.post('http://localhost:3001/api/publish', { folderName });
+   const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/publish`, { folderName });
+
     console.log("📦 Response from publish:", res.data);
 
     if (res.data.success && res.data.deployedUrl) {
