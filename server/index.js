@@ -21,7 +21,7 @@ const asyncExecute = promisify(exec);
 const History = [];
 
 const ai = new GoogleGenAI({
-  apiKey: 'AIzaSyBTRfptcyYepriMr7uopPZOM7mVNKXkgRw', // 🔐 Replace in production
+  apiKey: 'AIzaSyBPpV6qbADTHDZXZrfQ-raIrGerejOK_xA', // 🔐 Replace in production
 });
 
 // 📁 File writer (touch, mkdir, echo)
