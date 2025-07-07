@@ -1,14 +1,19 @@
+// components/ThemeToggle.jsx
 import React from 'react';
 import { Palette, MonitorSpeaker } from 'lucide-react';
-import { useTheme } from '../components/ThemeContext';
+import { useTheme } from './ThemeContext';
 
 const ThemeToggle: React.FC = () => {
-  const { themeName, toggleTheme } = useTheme();
+  const { themeName, toggleTheme, currentTheme } = useTheme();
 
   return (
     <button
       onClick={toggleTheme}
-      className="relative p-3 rounded-full bg-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-gray-400 group"
+      className="relative p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border group"
+      style={{ 
+        backgroundColor: currentTheme.name === 'Black & White' ? '#1F2937' : '#FFFFFF',
+        borderColor: currentTheme.name === 'Black & White' ? '#374151' : '#E5E7EB'
+      }}
       aria-label="Toggle theme"
     >
       <div className="relative w-6 h-6">
@@ -22,7 +27,7 @@ const ThemeToggle: React.FC = () => {
         <MonitorSpeaker 
           className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
             themeName === 'blackWhite' 
-              ? 'text-black opacity-100 rotate-0' 
+              ? 'text-white opacity-100 rotate-0' 
               : 'text-gray-400 opacity-0 -rotate-90'
           }`}
         />

@@ -18,7 +18,8 @@ const asyncExecute = promisify(exec);
 const History = [];
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyAkXbkoKjjUMpOs6ukOCUdoGTuHJKKUiY4', // 🔐 Use env var in prod
+  // apiKey: process.env.GEMINI_API_KEY || 'AIzaSyAsZyhKRwu3s-XDwuE4IdMQhFWDiSHDi1g', // 🔐 Use env var in prod
+  apiKey:'AIzaSyAkXbkoKjjUMpOs6ukOCUdoGTuHJKKUiY4', // 🔐 Use env var in prod
 });
 
 // 📁 File writer
@@ -222,3 +223,4 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
+

@@ -50,17 +50,17 @@ const themes: Record<string, Theme> = {
       primary: '#000000',
       secondary: '#374151',
       accent: '#6B7280',
-      background: '#FFFFFF',
-      surface: '#F9FAFB',
+      background: '#000000',
+      surface: '#1F2937',
       text: {
-        primary: '#000000',
-        secondary: '#374151',
-        light: '#6B7280'
+        primary: '#FFFFFF',
+        secondary: '#D1D5DB',
+        light: '#9CA3AF'
       },
       gradients: {
         primary: 'from-black via-gray-800 to-gray-900',
         secondary: 'from-gray-800 via-gray-700 to-black',
-        hero: 'from-gray-50 via-white to-gray-100',
+        hero: 'from-black via-gray-900 to-gray-800',
         cta: 'from-black via-gray-800 to-gray-900'
       }
     }
@@ -73,9 +73,9 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
-const  ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export  const useTheme = () => {
+export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');

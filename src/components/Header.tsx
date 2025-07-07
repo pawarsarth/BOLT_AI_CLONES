@@ -19,7 +19,13 @@ const Header: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <header 
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-all duration-500"
+      style={{ 
+        backgroundColor: `${currentTheme.colors.background}CC`,
+        borderColor: currentTheme.name === 'Black & White' ? '#374151' : '#E5E7EB'
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -27,22 +33,64 @@ const Header: React.FC = () => {
             <div className={`p-2 rounded-lg bg-gradient-to-r ${currentTheme.colors.gradients.primary} group-hover:scale-110 transition-transform duration-300`}>
               <Code className="h-6 w-6 text-white" />
             </div>
-            <span className={`text-xl font-bold ${currentTheme.colors.text.primary === '#000000' ? 'text-black' : 'text-gray-900'}`}>CodeAI</span>
+            <span 
+              className="text-xl font-bold transition-colors duration-300"
+              style={{ color: currentTheme.colors.text.primary }}
+            >
+              CodeAI
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`text-base font-medium transition-colors duration-200 ${
-                  isActive(item.href)
-                    ? `bg-gradient-to-r ${currentTheme.colors.gradients.primary} bg-clip-text text-transparent`
-                    : `${currentTheme.colors.text.primary === '#000000' ? 'text-black hover:text-gray-600' : 'text-gray-700 hover:text-blue-600'}`
+                className={`nav-link relative px-6 py-3 text-lg font-semibold transition-all duration-500 rounded-xl overflow-hidden group ${
+                  isActive(item.href) ? 'active' : ''
                 }`}
+                style={{ 
+                  color: isActive(item.href) 
+                    ? 'transparent' 
+                    : currentTheme.colors.text.secondary 
+                }}
               >
-                {item.name}
+                {/* Neon border animation */}
+                <div className={`absolute inset-0 rounded-xl transition-all duration-500 ${
+                  isActive(item.href) 
+                    ? `bg-gradient-to-r ${currentTheme.colors.gradients.primary} opacity-100 animate-pulse` 
+                    : 'bg-transparent opacity-0 group-hover:opacity-100'
+                } ${
+                  !isActive(item.href) ? `group-hover:bg-gradient-to-r group-hover:${currentTheme.colors.gradients.primary}` : ''
+                }`}></div>
+                
+                {/* Moving neon border effect */}
+                <div className={`absolute inset-0 rounded-xl transition-all duration-700 ${
+                  isActive(item.href) || 'group-hover:animate-pulse'
+                }`} style={{
+                  background: isActive(item.href) 
+                    ? `linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)` 
+                    : 'transparent',
+                  backgroundSize: '200% 200%',
+                  animation: isActive(item.href) ? 'neonSweep 2s ease-in-out infinite' : 'none'
+                }}></div>
+
+                {/* Text content */}
+                <span className={`relative z-10 transition-all duration-500 ${
+                  isActive(item.href) 
+                    ? 'text-white font-bold text-xl drop-shadow-lg' 
+                    : 'group-hover:text-white group-hover:font-bold group-hover:text-xl group-hover:drop-shadow-lg'
+                }`}>
+                  {item.name}
+                </span>
+
+                {/* Glow effect */}
+                <div className={`absolute inset-0 rounded-xl transition-all duration-500 ${
+                  isActive(item.href) 
+                    ? 'shadow-lg shadow-blue-500/50' 
+                    : 'group-hover:shadow-lg group-hover:shadow-blue-500/50'
+                }`}></div>
               </Link>
             ))}
           </nav>
@@ -63,11 +111,8 @@ const Header: React.FC = () => {
             <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                currentTheme.colors.text.primary === '#000000' 
-                  ? 'text-black hover:text-gray-600 hover:bg-gray-100' 
-                  : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'
-              }`}
+              className="p-2 rounded-lg transition-colors duration-300"
+              style={{ color: currentTheme.colors.text.primary }}
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -76,20 +121,44 @@ const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 bg-white/95 backdrop-blur-md">
+          <div 
+            className="md:hidden py-4 border-t backdrop-blur-md transition-all duration-300"
+            style={{ 
+              backgroundColor: `${currentTheme.colors.background}F5`,
+              borderColor: currentTheme.name === 'Black & White' ? '#374151' : '#E5E7EB'
+            }}
+          >
             <div className="flex flex-col space-y-3">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`text-base font-medium px-4 py-2 rounded-lg transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? `bg-gradient-to-r ${currentTheme.colors.gradients.primary} bg-clip-text text-transparent`
-                      : `${currentTheme.colors.text.primary === '#000000' ? 'text-black hover:text-gray-600 hover:bg-gray-50' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`
+                  className={`mobile-nav-link relative px-4 py-3 rounded-lg text-lg font-semibold transition-all duration-500 overflow-hidden group ${
+                    isActive(item.href) ? 'active' : ''
                   }`}
+                  style={{ 
+                    color: isActive(item.href) 
+                      ? 'transparent' 
+                      : currentTheme.colors.text.secondary 
+                  }}
                 >
-                  {item.name}
+                  {/* Mobile neon background */}
+                  <div className={`absolute inset-0 rounded-lg transition-all duration-500 ${
+                    isActive(item.href) 
+                      ? `bg-gradient-to-r ${currentTheme.colors.gradients.primary} opacity-100` 
+                      : 'bg-transparent opacity-0 group-hover:opacity-100'
+                  } ${
+                    !isActive(item.href) ? `group-hover:bg-gradient-to-r group-hover:${currentTheme.colors.gradients.primary}` : ''
+                  }`}></div>
+                  
+                  <span className={`relative z-10 transition-all duration-500 ${
+                    isActive(item.href) 
+                      ? 'text-white font-bold' 
+                      : 'group-hover:text-white group-hover:font-bold'
+                  }`}>
+                    {item.name}
+                  </span>
                 </Link>
               ))}
               <Link
