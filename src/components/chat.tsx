@@ -133,10 +133,11 @@ function Chat() {
       recognitionRef.current.lang = 'en-US';
 
       recognitionRef.current.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join('');
-        setPrompt(prev => prev + transcript);
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        if (event.results[event.results.length - 1].isFinal) {
+          // Only set the final transcript, don't append
+          setPrompt(transcript.trim());
+        }
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -146,6 +147,11 @@ function Chat() {
 
       recognitionRef.current.onend = () => {
         setIsRecording(false);
+      };
+
+      recognitionRef.current.onstart = () => {
+        // Clear the prompt when starting speech recognition
+        setPrompt('');
       };
     }
 
@@ -268,7 +274,7 @@ function Chat() {
     addLog('user', prompt);
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/generate`, { prompt });
+      const res = await axios.post(`http://localhost:3001/api/generate`, { prompt });
       if (res.data.success && res.data.data) {
         res.data.data.forEach((item: any) => {
           if (item.command) {
@@ -349,7 +355,7 @@ function Chat() {
     if (!folderName) return;
 
     try {
-       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/publish`, { folderName });
+      const res = await axios.post(`http://localhost:3001/api/publish`, { folderName });
       console.log('📦 Response from publish:', res.data);
 
       if (res.data.success && res.data.deployedUrl) {
