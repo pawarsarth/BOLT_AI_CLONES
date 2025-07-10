@@ -1,10 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send, Code, Eye, Terminal, FileText } from 'lucide-react';
+import { Send, Code, Eye, Terminal, FileText, Mic, Clock } from 'lucide-react';
+import JSZip from 'jszip';
 import CodeEditor from './CodeEditor';
 import Preview from './Preview';
 import FileExplorer from './FileExplorer';
 import { useFileSystem } from '../hooks/useFileSystem';
+import { Alert } from 'antd';
+import Marquee from 'react-fast-marquee';
 
 interface LogEntry {
   type: 'user' | 'ai' | 'command' | 'result';
@@ -21,10 +24,63 @@ function Chat() {
   const [currentCode, setCurrentCode] = useState('');
   const [currentLanguage, setCurrentLanguage] = useState('html');
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [publishTimer, setPublishTimer] = useState<number | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const { files, expandedFolders, parseFilePath, toggleFolder, getFileContent } = useFileSystem();
 
-  // ✅ Load files from backend when component mounts
+  // Speech recognition initialization
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join('');
+        setPrompt(prev => prev + transcript);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsRecording(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (publishTimer !== null) {
+      if (publishTimer <= 0) {
+        setPublishTimer(null);
+        return;
+      }
+
+      const timerId = setTimeout(() => {
+        setPublishTimer(publishTimer - 1);
+      }, 1000);
+
+      return () => clearTimeout(timerId);
+    }
+  }, [publishTimer]);
+
+  // Load files from backend when component mounts
   useEffect(() => {
     async function loadFiles() {
       try {
@@ -89,7 +145,7 @@ function Chat() {
     addLog('user', prompt);
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/generate`, { prompt });
+      const res = await axios.post(`http://localhost:3001/api/generate`, { prompt });
       if (res.data.success && res.data.data) {
         res.data.data.forEach((item: any) => {
           if (item.command) {
@@ -118,7 +174,9 @@ function Chat() {
       return;
     }
 
-    alert('🚀 Publishing... Please wait about 1 minute for the site to deploy.\nDo not press the Publish button again.');
+    // Start the timer immediately when publish is clicked
+    setPublishTimer(60);
+    addLog('ai', '🚀 Starting deployment process...');
 
     const pathParts = selectedFile.split('/');
     let folderName = '';
@@ -132,18 +190,22 @@ function Chat() {
     if (!folderName) return;
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/publish`, { folderName });
+      const res = await axios.post(`http://localhost:3001/api/publish`, { folderName });
       console.log('📦 Response from publish:', res.data);
 
       if (res.data.success && res.data.deployedUrl) {
         setDeployedUrl(res.data.deployedUrl);
         addLog('ai', `🚀 Site Published at:\n${res.data.deployedUrl}`);
+        // Stop the timer when site is successfully published
+        setPublishTimer(null);
       } else {
         addLog('result', `⚠️ Failed to publish: ${res.data.message || 'Unknown error'}`);
       }
     } catch (err: any) {
       console.error('❌ Axios error:', err.response?.data || err.message);
       addLog('result', `❌ Publish error: ${err.message}`);
+      // Stop timer on error
+      setPublishTimer(null);
     }
   };
 
@@ -163,6 +225,48 @@ function Chat() {
     };
     setCurrentLanguage(languageMap[extension || ''] || 'plaintext');
   }, []);
+
+  // Enhanced export function to create zip file
+  const handleExport = useCallback(async () => {
+    if (files.length === 0) {
+      alert('No files to export');
+      return;
+    }
+
+    try {
+      const zip = new JSZip();
+
+      const addFilesToZip = (nodes: any[], folder: any = zip) => {
+        nodes.forEach((node) => {
+          if (node.type === 'file' && node.content) {
+            // Clean up the file path to remove 'server/' prefix if present
+            const cleanPath = node.path.startsWith('server/') ? node.path.substring(7) : node.path;
+            folder.file(cleanPath, node.content);
+          } else if (node.type === 'folder' && node.children) {
+            const subFolder = folder.folder(node.name);
+            addFilesToZip(node.children, subFolder);
+          }
+        });
+      };
+
+      addFilesToZip(files);
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'website-code.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      addLog('ai', '📦 Project exported as website-code.zip');
+    } catch (error) {
+      console.error('Export error:', error);
+      addLog('result', '❌ Failed to export project');
+    }
+  }, [files, addLog]);
 
   const getCompletePreviewContent = useCallback(() => {
     const findFilesByType = (nodes: any[], extension: string): any[] => {
@@ -234,8 +338,9 @@ ${enhancedHtml}
     }
   };
 
-  return (
+   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col">
+      {/* 🔷 Header */}
       <div className="bg-gray-800 border-b border-gray-700 p-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Code className="text-blue-400" />
@@ -243,8 +348,25 @@ ${enhancedHtml}
         </h1>
       </div>
 
+      {/* 🔔 Timer Marquee (shown just below header) */}
+      {publishTimer !== null && publishTimer > 0 && (
+        <div className="w-full">
+          <Alert
+            banner
+            type="info"
+            className="bg-yellow-500 text-black font-semibold border-none rounded-none"
+            message={
+              <Marquee pauseOnHover gradient={false} speed={60}>
+                ⏳ Please wait... Publishing your site. This may take up to 1 minute. — Time left: {publishTimer}s
+              </Marquee>
+            }
+          />
+        </div>
+      )}
+
+      {/* 🔽 Body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* File Explorer */}
+        {/* Sidebar File Explorer */}
         <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
             <FileExplorer
@@ -253,12 +375,14 @@ ${enhancedHtml}
               onFileSelect={handleFileSelect}
               expandedFolders={expandedFolders}
               onToggleFolder={toggleFolder}
+              onExport={handleExport}
             />
           </div>
         </div>
 
         {/* Main Panel */}
         <div className="flex-1 flex flex-col">
+          {/* Prompt Input Section */}
           <div className="bg-gray-800 border-b border-gray-700 p-4">
             <div className="flex gap-2">
               <input
@@ -270,6 +394,24 @@ ${enhancedHtml}
                 disabled={loading}
               />
               <button
+                onClick={() => {
+                  if (recognitionRef.current) {
+                    if (!isRecording) {
+                      recognitionRef.current.start();
+                      setIsRecording(true);
+                    } else {
+                      recognitionRef.current.stop();
+                    }
+                  } else {
+                    alert('Speech recognition not supported in this browser');
+                  }
+                }}
+                className={`px-4 py-3 rounded-lg flex items-center gap-2 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+              >
+                <Mic size={16} />
+                {isRecording ? "Stop" : "Speak"}
+              </button>
+              <button
                 onClick={handleSend}
                 disabled={loading || !prompt.trim()}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
@@ -279,9 +421,14 @@ ${enhancedHtml}
               </button>
               <button
                 onClick={handlePublish}
-                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                disabled={publishTimer !== null}
+                className={`px-4 py-3 text-white rounded-lg transition-colors ${
+                  publishTimer !== null 
+                    ? 'bg-gray-600 cursor-not-allowed' 
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}
               >
-                🚀 Publish
+                {publishTimer !== null ? `⏳ Publishing... ${publishTimer}s` : '🚀 Publish'}
               </button>
               {deployedUrl && (
                 <button
@@ -297,25 +444,34 @@ ${enhancedHtml}
 
           {/* Editor/Preview + Logs */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Editor/Preview Area */}
+            {/* Code Editor or Preview */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="bg-gray-800 border-b border-gray-700 flex">
-                <button
-                  onClick={() => setActiveTab('editor')}
-                  className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'editor' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
-                >
-                  <FileText size={16} />
-                  Code Editor
-                </button>
-                <button
-                  onClick={() => setActiveTab('preview')}
-                  className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'preview' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
-                >
-                  <Eye size={16} />
-                  Preview
-                </button>
+              {/* Tabs + Instruction Message */}
+              <div className="bg-gray-800 border-b border-gray-700">
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab('editor')}
+                    className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'editor' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                  >
+                    <FileText size={16} />
+                    Code Editor
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('preview')}
+                    className={`px-4 py-2 flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'preview' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                  >
+                    <Eye size={16} />
+                    Preview
+                  </button>
+                </div>
+
+                {/* 🟡 Instruction Banner */}
+                <div className="p-2 text-center text-sm text-yellow-400 font-medium border-t border-gray-700 bg-gray-900">
+                  👉 Click on <span className="text-blue-400 font-semibold">index.html</span> to see the preview of your web page.
+                </div>
               </div>
 
+              {/* Main Content Area */}
               <div className="flex-1 overflow-hidden">
                 {activeTab === 'editor' ? (
                   selectedFile && currentCode ? (
@@ -326,11 +482,10 @@ ${enhancedHtml}
                         onChange={(value) => {
                           if (!value) return;
                           setCurrentCode(value);
-                          parseFilePath(selectedFile!, value); // update file system content
+                          parseFilePath(selectedFile!, value);
                         }}
                         readOnly={false}
                       />
-
                     </div>
                   ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
