@@ -1,7 +1,0 @@
-body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-h1 { color: #333; }
-header { background-color: #333; color: #fff; padding: 1em 0; text-align: center; }
-.hero { background-color: #5cb85c; color: #fff; text-align: center; padding: 2em 0; }
-.products { padding: 2em; display: flex; justify-content: space-around; flex-wrap: wrap; }
-.tea-item { background-color: #fff; padding: 1em; margin: 1em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-align: center; flex: 1; min-width: 250px; }
-footer { background-color: #333; color: #fff; text-align: center; padding: 1em 0; position: relative; bottom: 0; width: 100%; }
