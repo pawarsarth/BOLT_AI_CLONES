@@ -340,7 +340,7 @@ function Chat() {
     }
 
     // Start the timer immediately when publish is clicked - Updated to 80 seconds
-    setPublishTimer(80);
+    setPublishTimer(97);
     addLog('ai', '🚀 Starting deployment process...');
 
     const pathParts = selectedFile.split('/');
