@@ -18,13 +18,17 @@ const Header: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleChatAIClick = () => {
+    window.open('https://unrivaled-taffy-ae8f7c.netlify.app/', '_blank');
+  };
+
   return (
     <header 
       className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-all duration-500"
       style={{ 
         backgroundColor: `${currentTheme.colors.background}CC`,
         borderColor: currentTheme.name === 'Black & White' ? '#374151' : '#E5E7EB'
-      }}
+      }} 
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -98,6 +102,12 @@ const Header: React.FC = () => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
+            <button
+              onClick={handleChatAIClick}
+              className={`bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300`}
+            >
+              Chat AI
+            </button>
             <Link
               to="/chat"
               className={`bg-gradient-to-r ${currentTheme.colors.gradients.primary} text-white px-6 py-2 rounded-lg text-sm font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300`}
@@ -161,6 +171,15 @@ const Header: React.FC = () => {
                   </span>
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  handleChatAIClick();
+                  setIsMenuOpen(false);
+                }}
+                className={`mx-4 mt-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-lg text-sm font-semibold text-center hover:shadow-lg transition-all duration-300`}
+              >
+                Chat AI
+              </button>
               <Link
                 to="/chat"
                 onClick={() => setIsMenuOpen(false)}
