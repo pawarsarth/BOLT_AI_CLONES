@@ -757,7 +757,7 @@ ${enhancedHtml}
 
                 {/* 🟡 Instruction Banner */}
                 <div className="p-2 text-center text-xs sm:text-sm text-yellow-400 font-medium border-t border-gray-700 bg-gray-900">
-                  <span className="hidden sm:inline">👉 Click on <span className="text-blue-400 font-semibold">index.html</span> to see the preview of your web page.</span>
+                  <span className="hidden sm:inline">👉 Click on <span className="text-blue-400 font-semibold">index.html</span> to see the preview of your web page.Please wait for 1 min to load complete code.</span>
                   <span className="sm:hidden">👉 Select <span className="text-blue-400 font-semibold">index.html</span> to preview</span>
                   {isGenerating && <span className="ml-2 text-green-400">⚡ Code generating line by line...</span>}
                 </div>
